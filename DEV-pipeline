@@ -1,0 +1,40 @@
+pipeline {
+    agent  {
+        node {
+            label 'dev'
+        }
+    }
+    environment {
+        SCANNER_HOME = "mysonar"
+    }
+    tools {
+        maven "mymaven"
+    }
+    stages {
+        stage('code') {
+            steps {
+                git branch: 'develop-1.0', url: 'https://github.com/Mouryakoti/demorepo.git'
+            }
+        }
+        stage('build') {
+            steps { 
+                sh 'mvn clean package'
+             }
+         }
+          stage('CQA') {
+            steps { 
+                sh '''
+                mvn sonar:sonar \
+                -Dsonar.projectKey=myprojecr \
+                -Dsonar.host.url=http://13.60.241.176:9000 \
+                -Dsonar.login=93f589fc414e4c3b09db646046aa324ee893f6c8
+                '''
+            }
+         }
+          stage("Deploy") {
+              steps {
+                  deploy adapters: [tomcat9(alternativeDeploymentContext: '', credentialsId: 'tomcat-id', path: '', url: 'http://13.53.207.248:8080/')], contextPath: 'Jenkins-project', war: 'target/*.war'
+              }
+          }
+    }
+}    
