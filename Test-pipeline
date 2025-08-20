@@ -1,0 +1,45 @@
+pipeline {
+    agent  {
+        node {
+            label 'test'
+        }
+    }
+    environment {
+        SCANNER_HOME = "mysonar"
+    }
+    tools {
+        maven "mymaven"
+    }
+    stages {
+        stage('code') {
+            steps {
+                git branch: 'feature', url: 'https://github.com/Mouryakoti/demorepo.git'
+            }
+        }
+        stage('build') {
+            steps { 
+                sh 'mvn clean package'
+             }
+         }
+          stage('CQA') {
+            steps { 
+                sh '''
+                mvn sonar:sonar \
+                -Dsonar.projectKey=myprojecr \
+                -Dsonar.host.url=http://13.60.241.176:9000 \
+                -Dsonar.login=93f589fc414e4c3b09db646046aa324ee893f6c8
+                '''
+            }
+         }
+         stage("Artifact") {
+             steps {
+                 nexusArtifactUploader artifacts: [[artifactId: 'myweb', classifier: '', file: 'target/myweb-8.6.9.war', type: 'war']], credentialsId: 'nexus-id', groupId: 'in.javahome', nexusUrl: '13.60.206.223:8081', nexusVersion: 'nexus3', protocol: 'http', repository: 'flm-repo', version: '8.6.9'
+             }
+         }
+          stage("Deploy") {
+              steps {
+                  deploy adapters: [tomcat9(alternativeDeploymentContext: '', credentialsId: 'tomcat-id', path: '', url: 'http://56.228.6.166:8080/')], contextPath: 'Jenkins-project', war: 'target/*.war'
+              }
+          }
+    }
+}    
